@@ -21,14 +21,20 @@ jobs:
           unzip -q gradle-8.5-bin.zip
           export PATH=$PWD/gradle-8.5/bin:$PATH
 
-          # 2. प्रोजेक्ट फाइल्स को सही फोल्डर्स में डालना
+          # 2. प्रोजेक्ट स्ट्रक्चर तैयार करना
           mkdir -p app/src/main/java/com/ioslauncher/pro
           mkdir -p app/src/main/res/values
 
           [ -f AndroidManifest.xml ] && mv AndroidManifest.xml app/src/main/AndroidManifest.xml
           [ -f MainActivity.kt ] && mv MainActivity.kt app/src/main/java/com/ioslauncher/pro/MainActivity.kt
 
-          # 3. आवश्यक सेटिंग्स तैयार करना
+          # 3. AndroidX चालू करना (यही एरर था जो अब ठीक हो गया!)
+          cat << 'EOF' > gradle.properties
+          android.useAndroidX=true
+          android.nonTransitiveRClass=true
+          EOF
+
+          # 4. आवश्यक सेटिंग्स तैयार करना
           cat << 'EOF' > settings.gradle.kts
           pluginManagement {
               repositories {
@@ -91,7 +97,7 @@ jobs:
           </resources>
           EOF
 
-          # 4. असली APK कंपाइल करना
+          # 5. असली APK कंपाइल करना
           gradle assembleDebug --no-daemon
 
       - name: Upload APK
