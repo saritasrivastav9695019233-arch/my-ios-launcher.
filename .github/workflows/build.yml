@@ -36,7 +36,7 @@ jobs:
           android.nonTransitiveRClass=true
           EOF
 
-          # 4. मिसिंग थीम (Theme) बनाना (यही एरर था!)
+          # 4. थीम और आइकन तैयार करना
           cat << 'EOF' > app/src/main/res/values/themes.xml
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
@@ -44,7 +44,6 @@ jobs:
           </resources>
           EOF
 
-          # 5. मिसिंग ऐप आइकन (ic_launcher) बनाना (यही एरर था!)
           cat << 'EOF' > app/src/main/res/drawable/ic_launcher_bg.xml
           <?xml version="1.0" encoding="utf-8"?>
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
@@ -79,7 +78,7 @@ jobs:
           </adaptive-icon>
           EOF
 
-          # 6. आवश्यक सेटिंग्स तैयार करना
+          # 5. सेटिंग्स तैयार करना
           cat << 'EOF' > settings.gradle.kts
           pluginManagement {
               repositories {
@@ -106,6 +105,7 @@ jobs:
           }
           EOF
 
+          # 6. app/build.gradle.kts (Java 17 और Kotlin 17 दोनों मैच कर दिए गए हैं)
           cat << 'EOF' > app/build.gradle.kts
           plugins {
               id("com.android.application")
@@ -120,6 +120,13 @@ jobs:
                   targetSdk = 34
                   versionCode = 1
                   versionName = "1.0"
+              }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+              kotlinOptions {
+                  jvmTarget = "17"
               }
               buildFeatures {
                   compose = true
