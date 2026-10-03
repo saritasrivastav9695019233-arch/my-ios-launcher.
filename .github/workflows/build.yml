@@ -14,22 +14,21 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-
-      - name: Auto-Organize Android Project
+      - name: Setup Gradle and Build APK
         run: |
+          # 1. पोर्टेबल Gradle डाउनलोड करना
+          wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip
+          unzip -q gradle-8.5-bin.zip
+          export PATH=$PWD/gradle-8.5/bin:$PATH
+
+          # 2. प्रोजेक्ट फाइल्स को सही फोल्डर्स में डालना
           mkdir -p app/src/main/java/com/ioslauncher/pro
           mkdir -p app/src/main/res/values
 
-          # फाइल्स को सही Android फोल्डर में ऑटोमैटिक डालना
           [ -f AndroidManifest.xml ] && mv AndroidManifest.xml app/src/main/AndroidManifest.xml
           [ -f MainActivity.kt ] && mv MainActivity.kt app/src/main/java/com/ioslauncher/pro/MainActivity.kt
 
-          # settings.gradle.kts तैयार करना
+          # 3. आवश्यक सेटिंग्स तैयार करना
           cat << 'EOF' > settings.gradle.kts
           pluginManagement {
               repositories {
@@ -49,7 +48,6 @@ jobs:
           include(":app")
           EOF
 
-          # root build.gradle.kts तैयार करना
           cat << 'EOF' > build.gradle.kts
           plugins {
               id("com.android.application") version "8.2.2" apply false
@@ -57,7 +55,6 @@ jobs:
           }
           EOF
 
-          # app/build.gradle.kts तैयार करना
           cat << 'EOF' > app/build.gradle.kts
           plugins {
               id("com.android.application")
@@ -88,11 +85,14 @@ jobs:
           }
           EOF
 
-          # gradlew तैयार करना
-          gradle wrapper
+          cat << 'EOF' > app/src/main/res/values/strings.xml
+          <resources>
+              <string name="app_name">iPhone Launcher</string>
+          </resources>
+          EOF
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon
+          # 4. असली APK कंपाइल करना
+          gradle assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
