@@ -1,3 +1,4 @@
+    @file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 package com.ioslauncher.pro
 
 import android.content.Intent
@@ -35,7 +36,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 1. फोन के सारे ऐप्स लोड करना
+        // फोन के सारे ऐप्स लोड करना
         val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
         }
@@ -47,11 +48,11 @@ class MainActivity : ComponentActivity() {
             )
         }.sortedBy { it.name.lowercase() }
 
-        // नीचे डॉक के 4 मुख्य ऐप्स अलग करना
+        // नीचे डॉक के 4 मुख्य ऐप्स
         val dockApps = allApps.take(4)
         val homeApps = if (allApps.size > 4) allApps.drop(4) else allApps
 
-        // हर पेज पर 20 ऐप्स (4 कॉलम x 5 पंक्तियाँ) असली iPhone जैसा
+        // हर पेज पर 20 ऐप्स (4 कॉलम x 5 पंक्तियाँ)
         val pages = homeApps.chunked(20)
 
         setContent {
@@ -70,7 +71,7 @@ class MainActivity : ComponentActivity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        // होम स्क्रीन पर ही रहेगा
+        // होम स्क्रीन खुली रहेगी
     }
 }
 
@@ -117,7 +118,7 @@ fun Ios18ProMaxHomeScreen(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 1. iPhone 18 Pro Max Dynamic Island (डायनामिक आइलैंड)
+            // 1. Dynamic Island
             Spacer(modifier = Modifier.height(6.dp))
             Box(
                 modifier = Modifier
@@ -134,21 +135,18 @@ fun Ios18ProMaxHomeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // कैमरा सेंसर
                     Box(
                         modifier = Modifier
                             .size(11.dp)
                             .clip(CircleShape)
                             .background(Color(0xFF111827))
                     )
-                    // स्टेटस इंडिकेटर
                     Text(
                         text = "18 Pro Max",
                         color = Color(0xFF60A5FA),
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    // फेस आईडी सेंसर
                     Box(
                         modifier = Modifier
                             .size(8.dp)
@@ -160,14 +158,13 @@ fun Ios18ProMaxHomeScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 2. iOS 18 स्मार्ट विजेट (टाइम + वेदर कार्ड)
+            // 2. iOS 18 विजेट्स (घड़ी + बैटरी)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // क्लॉक विजेट
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -184,7 +181,6 @@ fun Ios18ProMaxHomeScreen(
                     }
                 }
 
-                // बैटरी व स्टेटस विजेट
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -216,7 +212,7 @@ fun Ios18ProMaxHomeScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 3. हॉरिजॉन्टल पेज स्वाइपिंग (Horizontal Pager - असली iPhone जैसा बाएं-दाएं स्वाइप)
+            // 3. हॉरिजॉन्टल पेज स्वाइपिंग (बाएं-दाएं स्वाइप)
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -242,9 +238,110 @@ fun Ios18ProMaxHomeScreen(
                                 for (app in rowApps) {
                                     IosAppIcon(app = app, onClick = { onAppClick(app.packageName) })
                                 }
-                                // खाली स्लॉट भरना ताकि कॉलम 4 पर ही रहे
                                 val remaining = 4 - rowApps.size
                                 repeat(remaining) {
+                                    Spacer(modifier = Modifier.width(68.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 4. पेज डॉट्स (Page Dots)
+            Row(
+                modifier = Modifier.padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                repeat(totalPages) { index ->
+                    val isSelected = pagerState.currentPage == index
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 3.dp)
+                            .size(if (isSelected) 8.dp else 6.dp)
+                            .clip(CircleShape)
+                            .background(if (isSelected) Color.White else Color(0x66FFFFFF))
+                    )
+                }
+            }
+
+            // 5. नीचे फ्लोटिंग कांच का डॉक (iOS Floating Glass Dock)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .shadow(16.dp, RoundedCornerShape(34.dp), spotColor = Color(0x40000000))
+                    .clip(RoundedCornerShape(34.dp))
+                    .background(Color(0x38FFFFFF))
+                    .border(1.dp, Color(0x40FFFFFF), RoundedCornerShape(34.dp))
+                    .padding(vertical = 12.dp, horizontal = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    for (dockApp in dockApps) {
+                        IosDockIcon(app = dockApp, onClick = { onAppClick(dockApp.packageName) })
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+        }
+    }
+}
+
+@Composable
+fun IosAppIcon(app: AppInfo, onClick: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(68.dp)
+            .clickable { onClick() }
+    ) {
+        Box(
+            modifier = Modifier
+                .size(58.dp)
+                .shadow(6.dp, RoundedCornerShape(16.dp), spotColor = Color.Black)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color(0x22000000))
+        ) {
+            androidx.compose.foundation.Image(
+                bitmap = app.icon,
+                contentDescription = app.name,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = app.name,
+            color = Color.White,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+fun IosDockIcon(app: AppInfo, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(56.dp)
+            .shadow(8.dp, RoundedCornerShape(16.dp), spotColor = Color.Black)
+            .clip(RoundedCornerShape(16.dp))
+            .clickable { onClick() }
+    ) {
+        androidx.compose.foundation.Image(
+            bitmap = app.icon,
+            contentDescription = app.name,
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}               repeat(remaining) {
                                     Spacer(modifier = Modifier.width(68.dp))
                                 }
                             }
