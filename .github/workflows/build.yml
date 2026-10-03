@@ -16,25 +16,163 @@ jobs:
 
       - name: Setup Gradle and Build APK
         run: |
-          # 1. Gradle डाउनलोड करना
           wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip
           unzip -q gradle-8.5-bin.zip
           export PATH=$PWD/gradle-8.5/bin:$PATH
 
-          # 2. पुराने फाइल्स को साफ करके नया स्ट्रक्चर बनाना
           rm -rf app
           mkdir -p app/src/main/java/com/ioslauncher/pro
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/drawable
           mkdir -p app/src/main/res/mipmap-anydpi-v26
 
-          # 3. AndroidX इनेबल करना
           cat << 'EOF' > gradle.properties
           android.useAndroidX=true
           android.nonTransitiveRClass=true
           EOF
 
-          # 4. असली iPhone 18 Pro Max का 100% सही और साफ Kotlin कोड लिखना
+          # 1. AndroidManifest.xml (Home Screen Icon + Default Launcher Fix)
+          cat << 'EOF' > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:roundIcon="@mipmap/ic_launcher_round"
+                  android:label="iPhone 18 Pro Max"
+                  android:theme="@style/Theme.Material3.DayNight.NoActionBar">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:launchMode="singleTask">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.HOME" />
+                          <category android:name="android.intent.category.DEFAULT" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          # 2. Themes & Icons
+          cat << 'EOF' > app/src/main/res/values/themes.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="Theme.Material3.DayNight.NoActionBar" parent="@android:style/Theme.Material.NoActionBar" />
+          </resources>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/drawable/ic_launcher_bg.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp" android:height="108dp"
+              android:viewportWidth="108" android:viewportHeight="108">
+              <path android:fillColor="#070B19" android:pathData="M0,0h108v108h-108z"/>
+          </vector>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/drawable/ic_launcher_fg.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp" android:height="108dp"
+              android:viewportWidth="108" android:viewportHeight="108">
+              <path android:fillColor="#38BDF8" android:pathData="M24,24h60v60h-60z"/>
+          </vector>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@drawable/ic_launcher_bg"/>
+              <foreground android:drawable="@drawable/ic_launcher_fg"/>
+          </adaptive-icon>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@drawable/ic_launcher_bg"/>
+              <foreground android:drawable="@drawable/ic_launcher_fg"/>
+          </adaptive-icon>
+          EOF
+
+          cat << 'EOF' > settings.gradle.kts
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "iPhone18ProMaxLauncher"
+          include(":app")
+          EOF
+
+          cat << 'EOF' > build.gradle.kts
+          plugins {
+              id("com.android.application") version "8.2.2" apply false
+              id("org.jetbrains.kotlin.android") version "1.9.22" apply false
+          }
+          EOF
+
+          cat << 'EOF' > app/build.gradle.kts
+          plugins {
+              id("com.android.application")
+              id("org.jetbrains.kotlin.android")
+          }
+          android {
+              namespace = "com.ioslauncher.pro"
+              compileSdk = 34
+              defaultConfig {
+                  applicationId = "com.ioslauncher.pro"
+                  minSdk = 26
+                  targetSdk = 34
+                  versionCode = 4
+                  versionName = "4.0"
+              }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+              kotlinOptions {
+                  jvmTarget = "17"
+                  freeCompilerArgs += listOf("-opt-in=androidx.compose.foundation.ExperimentalFoundationApi")
+              }
+              buildFeatures {
+                  compose = true
+              }
+              composeOptions {
+                  kotlinCompilerExtensionVersion = "1.5.8"
+              }
+          }
+          dependencies {
+              implementation("androidx.core:core-ktx:1.12.0")
+              implementation("androidx.activity:activity-compose:1.8.2")
+              implementation("androidx.compose.ui:ui:1.6.2")
+              implementation("androidx.compose.material3:material3:1.2.0")
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/res/values/strings.xml
+          <resources>
+              <string name="app_name">iPhone 18 Pro Max</string>
+          </resources>
+          EOF
+
+          # 3. MainActivity.kt (Liquid Glass, Dynamic Island, Horizontal Paging)
           cat << 'EOF' > app/src/main/java/com/ioslauncher/pro/MainActivity.kt
           package com.ioslauncher.pro
 
@@ -43,6 +181,7 @@ jobs:
           import androidx.activity.ComponentActivity
           import androidx.activity.compose.setContent
           import androidx.compose.foundation.ExperimentalFoundationApi
+          import androidx.compose.foundation.Image
           import androidx.compose.foundation.background
           import androidx.compose.foundation.border
           import androidx.compose.foundation.clickable
@@ -70,10 +209,8 @@ jobs:
           import java.util.*
 
           class MainActivity : ComponentActivity() {
-
               override fun onCreate(savedInstanceState: Bundle?) {
                   super.onCreate(savedInstanceState)
-
                   val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
                       addCategory(Intent.CATEGORY_LAUNCHER)
                   }
@@ -90,19 +227,12 @@ jobs:
                   val pages = homeApps.chunked(20)
 
                   setContent {
-                      Ios18ProMaxHomeScreen(
-                          pages = pages,
-                          dockApps = dockApps,
-                          onAppClick = { pkg ->
-                              val launch = packageManager.getLaunchIntentForPackage(pkg)
-                              if (launch != null) {
-                                  startActivity(launch)
-                              }
-                          }
-                      )
+                      IosHomeScreen(pages, dockApps) { pkg ->
+                          val l = packageManager.getLaunchIntentForPackage(pkg)
+                          if (l != null) startActivity(l)
+                      }
                   }
               }
-
               @Deprecated("Deprecated in Java")
               override fun onBackPressed() {}
           }
@@ -115,409 +245,100 @@ jobs:
 
           @OptIn(ExperimentalFoundationApi::class)
           @Composable
-          fun Ios18ProMaxHomeScreen(
-              pages: List<List<AppInfo>>,
-              dockApps: List<AppInfo>,
-              onAppClick: (String) -> Unit
-          ) {
+          fun IosHomeScreen(pages: List<List<AppInfo>>, dockApps: List<AppInfo>, onAppClick: (String) -> Unit) {
               val totalPages = if (pages.isEmpty()) 1 else pages.size
               val pagerState = rememberPagerState(pageCount = { totalPages })
-
               val timeFormat = remember { SimpleDateFormat("h:mm", Locale.getDefault()) }
               val dateFormat = remember { SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()) }
-              val currentTime = remember { timeFormat.format(Date()) }
-              val currentDate = remember { dateFormat.format(Date()) }
 
-              val iosWallpaper = Brush.verticalGradient(
-                  colors = listOf(
-                      Color(0xFF070B19),
-                      Color(0xFF14122E),
-                      Color(0xFF26123D),
-                      Color(0xFF0F1A30),
-                      Color(0xFF050814)
-                  )
+              val bg = Brush.verticalGradient(
+                  listOf(Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364))
               )
 
-              Box(
-                  modifier = Modifier
-                      .fillMaxSize()
-                      .background(iosWallpaper)
-                      .statusBarsPadding()
-                      .navigationBarsPadding()
-              ) {
-                  Column(
-                      modifier = Modifier.fillMaxSize(),
-                      horizontalAlignment = Alignment.CenterHorizontally
-                  ) {
-                      Spacer(modifier = Modifier.height(6.dp))
-                      // 1. Dynamic Island
+              Box(modifier = Modifier.fillMaxSize().background(bg).statusBarsPadding().navigationBarsPadding()) {
+                  Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+                      Spacer(modifier = Modifier.height(8.dp))
+                      // Dynamic Island
                       Box(
-                          modifier = Modifier
-                              .width(130.dp)
-                              .height(35.dp)
-                              .shadow(12.dp, RoundedCornerShape(20.dp), spotColor = Color.Black)
-                              .clip(RoundedCornerShape(20.dp))
-                              .background(Color.Black)
+                          modifier = Modifier.width(135.dp).height(36.dp)
+                              .clip(RoundedCornerShape(20.dp)).background(Color.Black)
                               .border(0.5.dp, Color(0x33FFFFFF), RoundedCornerShape(20.dp)),
                           contentAlignment = Alignment.Center
                       ) {
-                          Row(
-                              modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
-                              horizontalArrangement = Arrangement.SpaceBetween,
-                              verticalAlignment = Alignment.CenterVertically
-                          ) {
-                              Box(
-                                  modifier = Modifier
-                                      .size(11.dp)
-                                      .clip(CircleShape)
-                                      .background(Color(0xFF111827))
-                              )
-                              Text(
-                                  text = "18 Pro Max",
-                                  color = Color(0xFF60A5FA),
-                                  fontSize = 9.sp,
-                                  fontWeight = FontWeight.Bold
-                              )
-                              Box(
-                                  modifier = Modifier
-                                      .size(8.dp)
-                                      .clip(CircleShape)
-                                      .background(Color(0xFF1E293B))
-                              )
+                          Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                              Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Color(0xFF1E293B)))
+                              Text(text = "18 Pro Max", color = Color(0xFF60A5FA), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                              Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF0F172A)))
                           }
                       }
-
-                      Spacer(modifier = Modifier.height(10.dp))
-
-                      // 2. iOS 18 Widgets
-                      Row(
-                          modifier = Modifier
-                              .fillMaxWidth()
-                              .padding(horizontal = 20.dp),
-                          horizontalArrangement = Arrangement.spacedBy(14.dp)
-                      ) {
-                          Box(
-                              modifier = Modifier
-                                  .weight(1f)
-                                  .height(105.dp)
-                                  .clip(RoundedCornerShape(24.dp))
-                                  .background(Color(0x28FFFFFF))
-                                  .border(1.dp, Color(0x30FFFFFF), RoundedCornerShape(24.dp))
-                                  .padding(14.dp)
-                          ) {
-                              Column(verticalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxSize()) {
-                                  Text(text = "CUPERTINO", color = Color(0xFFA1A1AA), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                  Text(text = currentTime, color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
-                                  Text(text = currentDate, color = Color(0xFFE4E4E7), fontSize = 11.sp, maxLines = 1)
-                              }
-                          }
-
-                          Box(
-                              modifier = Modifier
-                                  .weight(1f)
-                                  .height(105.dp)
-                                  .clip(RoundedCornerShape(24.dp))
-                                  .background(Color(0x28FFFFFF))
-                                  .border(1.dp, Color(0x30FFFFFF), RoundedCornerShape(24.dp))
-                                  .padding(14.dp)
-                          ) {
-                              Column(verticalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxSize()) {
-                                  Row(
-                                      horizontalArrangement = Arrangement.SpaceBetween,
-                                      verticalAlignment = Alignment.CenterVertically,
-                                      modifier = Modifier.fillMaxWidth()
-                                  ) {
-                                      Text(text = "BATTERY", color = Color(0xFFA1A1AA), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                      Box(
-                                          modifier = Modifier
-                                              .size(8.dp)
-                                              .clip(CircleShape)
-                                              .background(Color(0xFF34D399))
-                                      )
-                                  }
-                                  Text(text = "85%", color = Color(0xFF34D399), fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
-                                  Text(text = "iQOO 5G • iOS 18", color = Color(0xFFE4E4E7), fontSize = 11.sp)
-                              }
-                          }
-                      }
-
                       Spacer(modifier = Modifier.height(14.dp))
-
-                      // 3. Horizontal Pager (बाएं-दाएं स्वाइप)
-                      Box(
-                          modifier = Modifier
-                              .weight(1f)
-                              .fillMaxWidth()
-                      ) {
-                          HorizontalPager(
-                              state = pagerState,
-                              modifier = Modifier.fillMaxSize()
-                          ) { pageIndex ->
-                              val currentApps = pages.getOrElse(pageIndex) { emptyList() }
-                              Column(
-                                  modifier = Modifier
-                                      .fillMaxSize()
-                                      .padding(horizontal = 16.dp),
-                                  verticalArrangement = Arrangement.spacedBy(16.dp)
-                              ) {
-                                  val rows = currentApps.chunked(4)
-                                  for (rowApps in rows) {
-                                      Row(
-                                          modifier = Modifier.fillMaxWidth(),
-                                          horizontalArrangement = Arrangement.SpaceAround
-                                      ) {
-                                          for (app in rowApps) {
-                                              IosAppIcon(app = app, onClick = { onAppClick(app.packageName) })
+                      // Widget Row (Liquid Glass)
+                      Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                          Box(modifier = Modifier.weight(1f).height(105.dp).clip(RoundedCornerShape(24.dp)).background(Color(0x28FFFFFF)).border(1.dp, Color(0x35FFFFFF), RoundedCornerShape(24.dp)).padding(14.dp)) {
+                              Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+                                  Text("CUPERTINO", color = Color(0xFFA1A1AA), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                  Text(timeFormat.format(Date()), color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
+                                  Text(dateFormat.format(Date()), color = Color(0xFFE4E4E7), fontSize = 11.sp, maxLines = 1)
+                              }
+                          }
+                          Box(modifier = Modifier.weight(1f).height(105.dp).clip(RoundedCornerShape(24.dp)).background(Color(0x28FFFFFF)).border(1.dp, Color(0x35FFFFFF), RoundedCornerShape(24.dp)).padding(14.dp)) {
+                              Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+                                  Text("BATTERY", color = Color(0xFFA1A1AA), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                  Text("88%", color = Color(0xFF34D399), fontSize = 28.sp, fontWeight = FontWeight.ExtraBold)
+                                  Text("Liquid Glass • 5G", color = Color(0xFFE4E4E7), fontSize = 11.sp)
+                              }
+                          }
+                      }
+                      Spacer(modifier = Modifier.height(14.dp))
+                      // Horizontal Page Swiping
+                      Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                          HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { pageIdx ->
+                              val curApps = pages.getOrElse(pageIdx) { emptyList() }
+                              Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                  for (row in curApps.chunked(4)) {
+                                      Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                                          for (app in row) {
+                                              Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(68.dp).clickable { onAppClick(app.packageName) }) {
+                                                  Box(modifier = Modifier.size(58.dp).shadow(6.dp, RoundedCornerShape(16.dp)).clip(RoundedCornerShape(16.dp)).background(Color(0x22000000))) {
+                                                      Image(bitmap = app.icon, contentDescription = app.name, modifier = Modifier.fillMaxSize())
+                                                  }
+                                                  Spacer(modifier = Modifier.height(4.dp))
+                                                  Text(text = app.name, color = Color.White, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                                              }
                                           }
-                                          val remaining = 4 - rowApps.size
-                                          repeat(remaining) {
-                                              Spacer(modifier = Modifier.width(68.dp))
-                                          }
+                                          repeat(4 - row.size) { Spacer(modifier = Modifier.width(68.dp)) }
                                       }
                                   }
                               }
                           }
                       }
-
-                      // 4. Page Dots
-                      Row(
-                          modifier = Modifier.padding(vertical = 8.dp),
-                          horizontalArrangement = Arrangement.Center
-                      ) {
-                          repeat(totalPages) { index ->
-                              val isSelected = pagerState.currentPage == index
-                              Box(
-                                  modifier = Modifier
-                                      .padding(horizontal = 3.dp)
-                                      .size(if (isSelected) 8.dp else 6.dp)
-                                      .clip(CircleShape)
-                                      .background(if (isSelected) Color.White else Color(0x66FFFFFF))
-                              )
+                      // Page Dots
+                      Row(modifier = Modifier.padding(vertical = 6.dp)) {
+                          repeat(totalPages) { idx ->
+                              val sel = pagerState.currentPage == idx
+                              Box(modifier = Modifier.padding(3.dp).size(if (sel) 8.dp else 6.dp).clip(CircleShape).background(if (sel) Color.White else Color(0x66FFFFFF)))
                           }
                       }
-
-                      // 5. Floating Glass Dock
-                      Box(
-                          modifier = Modifier
-                              .fillMaxWidth()
-                              .padding(horizontal = 16.dp, vertical = 8.dp)
-                              .shadow(16.dp, RoundedCornerShape(34.dp), spotColor = Color(0x40000000))
-                              .clip(RoundedCornerShape(34.dp))
-                              .background(Color(0x38FFFFFF))
-                              .border(1.dp, Color(0x40FFFFFF), RoundedCornerShape(34.dp))
-                              .padding(vertical = 12.dp, horizontal = 12.dp)
-                      ) {
-                          Row(
-                              modifier = Modifier.fillMaxWidth(),
-                              horizontalArrangement = Arrangement.SpaceAround,
-                              verticalAlignment = Alignment.CenterVertically
-                          ) {
-                              for (dockApp in dockApps) {
-                                  IosDockIcon(app = dockApp, onClick = { onAppClick(dockApp.packageName) })
+                      // Liquid Glass Dock
+                      Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).clip(RoundedCornerShape(34.dp)).background(Color(0x3DFFFFFF)).border(1.5.dp, Color(0x55FFFFFF), RoundedCornerShape(34.dp)).padding(12.dp)) {
+                          Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                              for (d in dockApps) {
+                                  Box(modifier = Modifier.size(56.dp).shadow(8.dp, RoundedCornerShape(16.dp)).clip(RoundedCornerShape(16.dp)).clickable { onAppClick(d.packageName) }) {
+                                      Image(bitmap = d.icon, contentDescription = d.name, modifier = Modifier.fillMaxSize())
+                                  }
                               }
                           }
                       }
-
                       Spacer(modifier = Modifier.height(4.dp))
                   }
               }
           }
-
-          @Composable
-          fun IosAppIcon(app: AppInfo, onClick: () -> Unit) {
-              Column(
-                  horizontalAlignment = Alignment.CenterHorizontally,
-                  modifier = Modifier
-                      .width(68.dp)
-                      .clickable { onClick() }
-              ) {
-                  Box(
-                      modifier = Modifier
-                          .size(58.dp)
-                          .shadow(6.dp, RoundedCornerShape(16.dp), spotColor = Color.Black)
-                          .clip(RoundedCornerShape(16.dp))
-                          .background(Color(0x22000000))
-                  ) {
-                      androidx.compose.foundation.Image(
-                          bitmap = app.icon,
-                          contentDescription = app.name,
-                          modifier = Modifier.fillMaxSize()
-                      )
-                  }
-                  Spacer(modifier = Modifier.height(4.dp))
-                  Text(
-                      text = app.name,
-                      color = Color.White,
-                      fontSize = 11.sp,
-                      fontWeight = FontWeight.Medium,
-                      maxLines = 1,
-                      overflow = TextOverflow.Ellipsis,
-                      textAlign = TextAlign.Center
-                  )
-              }
-          }
-
-          @Composable
-          fun IosDockIcon(app: AppInfo, onClick: () -> Unit) {
-              Box(
-                  modifier = Modifier
-                      .size(56.dp)
-                      .shadow(8.dp, RoundedCornerShape(16.dp), spotColor = Color.Black)
-                      .clip(RoundedCornerShape(16.dp))
-                      .clickable { onClick() }
-              ) {
-                  androidx.compose.foundation.Image(
-                      bitmap = app.icon,
-                      contentDescription = app.name,
-                      modifier = Modifier.fillMaxSize()
-                  )
-              }
-          }
           EOF
 
-          # 5. Manifest तैयार करना
-          cat << 'EOF' > app/src/main/AndroidManifest.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
-              <application
-                  android:allowBackup="true"
-                  android:icon="@mipmap/ic_launcher"
-                  android:roundIcon="@mipmap/ic_launcher_round"
-                  android:label="iPhone Launcher"
-                  android:theme="@style/Theme.Material3.DayNight.NoActionBar">
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true"
-                      android:launchMode="singleTask">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.HOME" />
-                          <category android:name="android.intent.category.DEFAULT" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
-          # 6. थीम और आइकन तैयार करना
-          cat << 'EOF' > app/src/main/res/values/themes.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <style name="Theme.Material3.DayNight.NoActionBar" parent="@android:style/Theme.Material.NoActionBar" />
-          </resources>
-          EOF
-
-          cat << 'EOF' > app/src/main/res/drawable/ic_launcher_bg.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="108dp" android:height="108dp"
-              android:viewportWidth="108" android:viewportHeight="108">
-              <path android:fillColor="#0F172A" android:pathData="M0,0h108v108h-108z"/>
-          </vector>
-          EOF
-
-          cat << 'EOF' > app/src/main/res/drawable/ic_launcher_fg.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="108dp" android:height="108dp"
-              android:viewportWidth="108" android:viewportHeight="108">
-              <path android:fillColor="#38BDF8" android:pathData="M30,30h48v48h-48z"/>
-          </vector>
-          EOF
-
-          cat << 'EOF' > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-              <background android:drawable="@drawable/ic_launcher_bg"/>
-              <foreground android:drawable="@drawable/ic_launcher_fg"/>
-          </adaptive-icon>
-          EOF
-
-          cat << 'EOF' > app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-              <background android:drawable="@drawable/ic_launcher_bg"/>
-              <foreground android:drawable="@drawable/ic_launcher_fg"/>
-          </adaptive-icon>
-          EOF
-
-          # 7. सेटिंग्स तैयार करना
-          cat << 'EOF' > settings.gradle.kts
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          rootProject.name = "MyIosLauncher"
-          include(":app")
-          EOF
-
-          cat << 'EOF' > build.gradle.kts
-          plugins {
-              id("com.android.application") version "8.2.2" apply false
-              id("org.jetbrains.kotlin.android") version "1.9.22" apply false
-          }
-          EOF
-
-          cat << 'EOF' > app/build.gradle.kts
-          plugins {
-              id("com.android.application")
-              id("org.jetbrains.kotlin.android")
-          }
-          android {
-              namespace = "com.ioslauncher.pro"
-              compileSdk = 34
-              defaultConfig {
-                  applicationId = "com.ioslauncher.pro"
-                  minSdk = 26
-                  targetSdk = 34
-                  versionCode = 2
-                  versionName = "2.0"
-              }
-              compileOptions {
-                  sourceCompatibility = JavaVersion.VERSION_17
-                  targetCompatibility = JavaVersion.VERSION_17
-              }
-              kotlinOptions {
-                  jvmTarget = "17"
-                  freeCompilerArgs += listOf("-opt-in=androidx.compose.foundation.ExperimentalFoundationApi")
-              }
-              buildFeatures {
-                  compose = true
-              }
-              composeOptions {
-                  kotlinCompilerExtensionVersion = "1.5.8"
-              }
-          }
-          dependencies {
-              implementation("androidx.core:core-ktx:1.12.0")
-              implementation("androidx.activity:activity-compose:1.8.2")
-              implementation("androidx.compose.ui:ui:1.6.2")
-              implementation("androidx.compose.material3:material3:1.2.0")
-          }
-          EOF
-
-          cat << 'EOF' > app/src/main/res/values/strings.xml
-          <resources>
-              <string name="app_name">iPhone Launcher</string>
-          </resources>
-          EOF
-
-          # 8. असली APK कंपाइल करना
           gradle assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: iQOO-iOS-Launcher-APK
+          name: iPhone-18-Pro-Max-Launcher-APK
           path: app/build/outputs/apk/debug/*.apk
